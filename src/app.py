@@ -47,7 +47,7 @@ app.layout = html.Div([
             max=30,
             step=1,
             value=30,
-            marks={i: str(i) for i in range(1, 31)},
+            marks={i: str(i) for i in range(1, date_range + 1)},
         ),
     ]),
     html.Div(className='graph', children=[
