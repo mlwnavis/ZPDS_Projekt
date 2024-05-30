@@ -47,11 +47,15 @@ app.layout = html.Div([
             max=30,
             step=1,
             value=30,
-            marks={i: str(i) for i in range(1, date_range + 1)},
+            marks={i: str(i) for i in range(1, 31)},
         ),
     ]),
     html.Div(className='graph', children=[
-        dcc.Graph(id='chart')
+        dcc.Loading(
+            id="loading-1",
+            type="default",
+            children=dcc.Graph(id='chart')
+        )
     ]),
     dcc.Store(id="signal"),
 ])
@@ -123,7 +127,6 @@ def filter_city_days(df_input, city, days):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-
 
 '''
 app.layout = html.Div(
