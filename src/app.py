@@ -12,31 +12,118 @@ app = Dash(__name__, assets_folder="../assets")
 server = app.server
 
 CACHE_CONFIG = {
-    # try 'FileSystemCache' if you don't want to setup redis
-    "CACHE_TYPE": "redis",
-    "CACHE_REDIS_URL": os.getenv("REDIS_URL", "redis://localhost:6379"),
+    # Switching to 'FileSystemCache' to avoid Redis connection issues
+    "CACHE_TYPE": "filesystem",
+    "CACHE_DIR": "cache-directory",
 }
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
 
-
-
-# źródło danych
-
-df = get_data(52.409538, 16.931992, 30)
-print(df)
-fig = px.line(df, x="time", y="tavg")
+# Data source
+df = get_data(date_range)
 
 # App layout
+app.layout = html.Div([
+    html.H1(children="Prognoza pogody"),
+    html.Div(
+        children="""
+            Aplikacja napisana w Dashu
+        """
+    ),
+    html.Div([
+        html.H3(children="Miasto", className="card"),
+        dcc.Dropdown(
+            df["City"].unique(),
+            value="Poznań",
+            id="city-selection",
+            multi=False,
+        ),
+    ]),
+    html.Div([
+        html.H3(children="Zakres dni", className="card"),
+        dcc.Slider(
+            id='days-range',
+            min=1,
+            max=30,
+            step=1,
+            value=30,
+            marks={i: str(i) for i in range(1, date_range + 1)},
+        ),
+    ]),
+    html.Div(className='graph', children=[
+        dcc.Graph(id='chart')
+    ]),
+    dcc.Store(id="signal"),
+])
 
-app.layout = [
-    html.Div(className='row', children='My First App with Data, Graph, and Controls',
-             style={'textAlign': 'center', 'color': 'blue', 'fontSize': 30}),
+@cache.memoize()
+def global_store(city, days):
+    """
+    Fetches and processes the data for the selected city and days range.
 
-        html.Div(className='six columns', children=[
-            dcc.Graph(figure=fig, id='histo-chart-final')
-        ])
-]
+    :param city: Selected city
+    :param days: Number of days to look back
+    :return: Filtered DataFrame for the selected city and days range
+    """
+    tmp = filter_city_days(df, city, days)
+    time.sleep(3)  # Simulating a long computation
+    return tmp
+
+@app.callback(
+    Output("chart", "figure"),
+    Input("signal", "data"),
+)
+def update_graph(value):
+    """
+    Updates the plot according to the selected city and days range.
+
+    :param value: Selected city and days value from dcc.Store
+    :return: Updated plotly figure
+    """
+    df_preprocessed = global_store(value["City"], value["Days"])
+
+    fig = px.line(
+        df_preprocessed,
+        x="time",
+        y="tavg",
+    )
+
+    fig.update_layout(title=f'Average Temperature in {value["City"]} for the last {value["Days"]} days')
+
+    return fig
+
+@app.callback(
+    Output("signal", "data"),
+    [Input("city-selection", "value"), Input("days-range", "value")],
+)
+def compute_value(selected_city_value, days_range_value):
+    """
+    Stores the selected city and days value in dcc.Store.
+
+    :param selected_city_value: City selected from the dropdown
+    :param days_range_value: Number of days selected from the slider
+    :return: Dictionary with the selected city and days range
+    """
+    return {"City": selected_city_value, "Days": days_range_value}
+
+def filter_city_days(df_input, city, days):
+    """
+    Filters the DataFrame for the selected city and days range.
+
+    :param df_input: Input DataFrame
+    :param city: Selected city
+    :param days: Number of days to look back
+    :return: Filtered DataFrame
+    """
+    filtered_df = df_input[df_input["City"] == city]
+    max_date = filtered_df["time"].max()
+    min_date = max_date - pd.Timedelta(days=days)
+    tmp = filtered_df[filtered_df["time"] >= min_date]
+    return tmp
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
 
 '''
 app.layout = html.Div(

@@ -10,13 +10,13 @@ def get_data(
     all_data = []
 
     # Iteracja po miastach
-    for miasto, (lat, lon) in cities.items():
+    for city, (lat, lon) in cities.items():
         location = Point(lat, lon)
 
         data = Daily(location, start, end)
         data = data.fetch()
 
-        data['Miasto'] = miasto
+        data['City'] = city
 
         data.reset_index(inplace=True)
         all_data.append(data)
