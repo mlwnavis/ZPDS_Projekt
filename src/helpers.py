@@ -2,8 +2,9 @@ import datetime
 from meteostat import Point, Daily
 from config import *
 import pandas as pd
-def get_data(
-             delta:int):
+
+
+def get_data(delta: int):
     start = datetime.datetime.today() - datetime.timedelta(days=delta)
     end = datetime.datetime.today()
 
@@ -16,7 +17,7 @@ def get_data(
         data = Daily(location, start, end)
         data = data.fetch()
 
-        data['City'] = city
+        data["City"] = city
 
         data.reset_index(inplace=True)
         all_data.append(data)
@@ -26,5 +27,12 @@ def get_data(
 
     return data_complete
 
+
 if __name__ == "__main__":
-    print(get_data(30))
+    data = get_data(30)
+    data2 = (
+        data.groupby("time")
+        .agg({"tavg": "mean", "wspd": "mean", "pres": "mean", "prcp": "sum"})
+        .reset_index()
+    )
+    print(data2)
