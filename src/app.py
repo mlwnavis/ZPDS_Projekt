@@ -1,3 +1,8 @@
+"""
+Core application
+
+"""
+
 import os
 import time
 import pandas as pd  # type: ignore
@@ -11,10 +16,11 @@ app = Dash(__name__, assets_folder="../assets")
 
 server = app.server
 
+
 CACHE_CONFIG = {
-    # Switching to 'FileSystemCache' to avoid Redis connection issues
-    "CACHE_TYPE": "filesystem",
-    "CACHE_DIR": "cache-directory",
+    # try 'FileSystemCache' if you don't want to setup redis
+    "CACHE_TYPE": "redis",
+    "CACHE_REDIS_URL": os.getenv("REDIS_URL", "redis://localhost:6379"),
 }
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
@@ -23,74 +29,291 @@ cache.init_app(app.server, config=CACHE_CONFIG)
 df = get_data(date_range)
 
 # App layout
-app.layout = html.Div([
-    html.H1(children="Prognoza pogody"),
-    html.Div(
-        children="""
+app.layout = html.Div(
+    [
+        html.H1(children="Historia pogody"),
+        html.Div(
+            children="""
             Aplikacja napisana w Dashu
         """
-    ),
-    html.Div([
-        html.H3(children="Miasto", className="card"),
-        dcc.Dropdown(
-            df["City"].unique(),
-            value="Poznań",
-            id="city-selection",
-            multi=False,
         ),
-    ]),
-    html.Div([
-        html.H3(children="Zakres dni", className="card"),
-        dcc.Slider(
-            id='days-range',
-            min=1,
-            max=30,
-            step=1,
-            value=30,
-            marks={i: str(i) for i in range(1, date_range + 1)},
+        html.Div(
+            [
+                html.H3(children="Miasto", className="card"),
+                dcc.Dropdown(
+                    options=[
+                        {"label": city, "value": city} for city in df["City"].unique()
+                    ]
+                    + [
+                        {"label": "Wszystkie", "value": "Wszystkie"},
+                        {"label": "Cała Polska", "value": "Cała Polska"},
+                    ],
+                    value="Poznań",
+                    id="city-selection",
+                    multi=False,
+                ),
+            ]
         ),
-    ]),
-    html.Div(className='graph', children=[
-        dcc.Graph(id='chart')
-    ]),
-    dcc.Store(id="signal"),
-])
+        html.Div(
+            [
+                html.H3(children="Zakres dni", className="card"),
+                dcc.Slider(
+                    id="days-range",
+                    min=1,
+                    max=30,
+                    step=1,
+                    value=30,
+                    marks={i: str(i) for i in range(1, date_range + 1)},
+                ),
+            ]
+        ),
+        html.Div(
+            [
+                html.Div(
+                    [
+                        dcc.Loading(
+                            id="loading-pres",
+                            type="default",
+                            children=html.Div(
+                                id="pres-charts-container",
+                                style={
+                                    "height": f"{pres_height}px",
+                                    "overflowY": "scroll",
+                                },
+                            ),
+                        ),
+                        dcc.Loading(
+                            id="loading-wspd",
+                            type="default",
+                            children=html.Div(
+                                id="wspd-charts-container",
+                                style={
+                                    "height": f"{wspd_height}px",
+                                    "overflowY": "scroll",
+                                },
+                            ),
+                        ),
+                        dcc.Loading(
+                            id="loading-prcp",
+                            type="default",
+                            children=html.Div(
+                                id="prcp-charts-container",
+                                style={
+                                    "height": f"{prcp_height}px",
+                                    "overflowY": "scroll",
+                                },
+                            ),
+                        ),
+                    ],
+                    style={
+                        "width": "50%",
+                        "display": "inline-block",
+                        "vertical-align": "top",
+                    },
+                ),
+                html.Div(
+                    [
+                        dcc.Loading(
+                            id="loading-tavg",
+                            type="default",
+                            children=html.Div(
+                                id="tavg-charts-container",
+                                style={
+                                    "height": f"{tavg_height}px",
+                                    "overflowY": "scroll",
+                                },
+                            ),
+                        ),
+                    ],
+                    style={
+                        "width": "50%",
+                        "display": "inline-block",
+                        "vertical-align": "top",
+                    },
+                ),
+            ],
+            style={"display": "flex"},
+        ),
+        dcc.Store(id="signal"),
+    ]
+)
+
 
 @cache.memoize()
 def global_store(city, days):
     """
     Fetches and processes the data for the selected city and days range.
 
-    :param city: Selected city
+    :param city: Selected city, 'Wszystkie' for all cities, or 'Cała Polska' for average statistics
     :param days: Number of days to look back
     :return: Filtered DataFrame for the selected city and days range
     """
-    tmp = filter_city_days(df, city, days)
-    time.sleep(3)  # Simulating a long computation
-    return tmp
+    if city == "Wszystkie":
+        return filter_city_days(df, None, days)
+    elif city == "Cała Polska":
+        return (
+            filter_city_days(df, None, days)
+            .groupby("time")
+            .agg({"tavg": "mean", "wspd": "mean", "pres": "mean", "prcp": "sum"})
+            .reset_index()
+        )
+    else:
+        return filter_city_days(df, city, days)
+
 
 @app.callback(
-    Output("chart", "figure"),
+    [
+        Output("tavg-charts-container", "children"),
+        Output("wspd-charts-container", "children"),
+        Output("pres-charts-container", "children"),
+        Output("prcp-charts-container", "children"),
+    ],
     Input("signal", "data"),
 )
 def update_graph(value):
     """
-    Updates the plot according to the selected city and days range.
+    Updates the plots according to the selected city and days range.
 
     :param value: Selected city and days value from dcc.Store
-    :return: Updated plotly figure
+    :return: Updated plotly figures
     """
     df_preprocessed = global_store(value["City"], value["Days"])
+    city = value["City"]
+    days = value["Days"]
 
-    fig = px.line(
-        df_preprocessed,
-        x="time",
-        y="tavg",
-    )
+    if city == "Wszystkie":
+        cities = df_preprocessed["City"].unique()
+        tavg_graphs = []
+        wspd_graphs = []
+        pres_graphs = []
+        prcp_graphs = []
+        for city in cities:
+            city_data = df_preprocessed[df_preprocessed["City"] == city]
+            tavg_fig = px.line(
+                city_data,
+                x="time",
+                y="tavg",
+                title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
+                height=tavg_height,
+                labels={"time": "Dzień", "tavg": "°C"},
+            )
+            wspd_fig = px.line(
+                city_data,
+                x="time",
+                y="wspd",
+                title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
+                height=wspd_height,
+                labels={"time": "Dzień", "wspd": "km/h"},
+            )
+            pres_fig = px.line(
+                city_data,
+                x="time",
+                y="pres",
+                title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
+                height=pres_height,
+                labels={"time": "Dzień", "pres": "hPa"},
+            )
+            prcp_fig = px.bar(
+                city_data,
+                x="time",
+                y="prcp",
+                title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
+                height=prcp_height,
+                labels={"time": "Dzień", "prcp": "mm"},
+            )
 
-    fig.update_layout(title=f'Average Temperature in {value["City"]} for the last {value["Days"]} days')
+            tavg_graphs.append(
+                html.Div(dcc.Graph(figure=tavg_fig), style={"margin-bottom": "50px"})
+            )
+            wspd_graphs.append(
+                html.Div(dcc.Graph(figure=wspd_fig), style={"margin-bottom": "50px"})
+            )
+            pres_graphs.append(
+                html.Div(dcc.Graph(figure=pres_fig), style={"margin-bottom": "50px"})
+            )
+            prcp_graphs.append(
+                html.Div(dcc.Graph(figure=prcp_fig), style={"margin-bottom": "50px"})
+            )
+        return tavg_graphs, wspd_graphs, pres_graphs, prcp_graphs
+    elif city == "Cała Polska":
+        tavg_fig = px.line(
+            df_preprocessed,
+            x="time",
+            y="tavg",
+            title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
+            height=tavg_height,
+            labels={"time": "Dzień", "tavg": "°C"},
+        )
+        wspd_fig = px.line(
+            df_preprocessed,
+            x="time",
+            y="wspd",
+            title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
+            height=wspd_height,
+            labels={"time": "Dzień", "wspd": "km/h"},
+        )
+        pres_fig = px.line(
+            df_preprocessed,
+            x="time",
+            y="pres",
+            title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
+            height=pres_height,
+            labels={"time": "Dzień", "pres": "hPa"},
+        )
+        prcp_fig = px.bar(
+            df_preprocessed,
+            x="time",
+            y="prcp",
+            title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
+            height=prcp_height,
+            labels={"time": "Dzień", "prcp": "mm"},
+        )
+        return (
+            [dcc.Graph(figure=tavg_fig)],
+            [dcc.Graph(figure=wspd_fig)],
+            [dcc.Graph(figure=pres_fig)],
+            [dcc.Graph(figure=prcp_fig)],
+        )
+    else:
+        tavg_fig = px.line(
+            df_preprocessed,
+            x="time",
+            y="tavg",
+            title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
+            height=tavg_height,
+            labels={"time": "Dzień", "tavg": "°C"},
+        )
+        wspd_fig = px.line(
+            df_preprocessed,
+            x="time",
+            y="wspd",
+            title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
+            height=wspd_height,
+            labels={"time": "Dzień", "wspd": "km/h"},
+        )
+        pres_fig = px.line(
+            df_preprocessed,
+            x="time",
+            y="pres",
+            title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
+            height=pres_height,
+            labels={"time": "Dzień", "pres": "hPa"},
+        )
+        prcp_fig = px.bar(
+            df_preprocessed,
+            x="time",
+            y="prcp",
+            title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
+            height=prcp_height,
+            labels={"time": "Dzień", "prcp": "mm"},
+        )
+        return (
+            [dcc.Graph(figure=tavg_fig)],
+            [dcc.Graph(figure=wspd_fig)],
+            [dcc.Graph(figure=pres_fig)],
+            [dcc.Graph(figure=prcp_fig)],
+        )
 
-    return fig
 
 @app.callback(
     Output("signal", "data"),
@@ -106,189 +329,25 @@ def compute_value(selected_city_value, days_range_value):
     """
     return {"City": selected_city_value, "Days": days_range_value}
 
+
 def filter_city_days(df_input, city, days):
     """
     Filters the DataFrame for the selected city and days range.
 
     :param df_input: Input DataFrame
-    :param city: Selected city
+    :param city: Selected city or None for all cities
     :param days: Number of days to look back
     :return: Filtered DataFrame
     """
-    filtered_df = df_input[df_input["City"] == city]
-    max_date = filtered_df["time"].max()
+    max_date = df_input["time"].max()
     min_date = max_date - pd.Timedelta(days=days)
-    tmp = filtered_df[filtered_df["time"] >= min_date]
-    return tmp
+    filtered_df = df_input[df_input["time"] >= min_date]
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+    if city:
+        filtered_df = filtered_df[filtered_df["City"] == city]
 
+    return filtered_df
 
-'''
-app.layout = html.Div(
-    children=[
-        html.H1(children="Zgony na Covid a przyjęte dawki szczepień"),
-        html.Div(
-            children="""
-        Aplikacja napisana w Dashu
-    """
-        ),
-        html.Div(
-            [
-                html.H3(children="Płeć", className="card"),
-                dcc.Dropdown(
-                    df["plec"].unique(),
-                    df["plec"].unique(),
-                    id="gender-selection",
-                    multi=True,
-                ),
-            ]
-        ),
-        
-        html.Br(),
-        html.Div(
-            [
-                html.H3(children="Wiek", className="card"),
-                dcc.RangeSlider(
-                    min=1,
-                    max=max(df.wiek),
-                    value=[30, 80],
-                    id="age-selection",
-                ),
-            ]
-        ),
-        html.Div([dcc.Checklist(id="select_columns")]),
-        html.Div(dcc.Graph(id="chart")),
-        html.Div(dash_table.DataTable(id="tbl")),
-        # signal value to trigger callbacks
-        dcc.Store(id="signal"),
-    ]
-)
-
-
-
-def filter_age_gender(df_input, age, gender):
-    """
-
-    :param df_input:
-    :param age:
-    :param gender:
-    :return:
-    """
-    if age is None:
-        age = (min(df_input.wiek), max(df_input.wiek))
-    if gender is None:
-        gender = df_input.plec.unique()
-    tmp = df_input.loc[df_input.loc[:, "plec"].isin(gender), :]  # pylint: disable=E1101
-    tmp = tmp[tmp.loc[:, "wiek"] <= age[1]]
-    tmp = tmp[tmp.loc[:, "wiek"] >= age[0]]
-    return tmp
-
-
-# perform expensive computations in this "global store"
-# these computations are cached in a globally available
-# redis memory store which is available across processes
-# and for all time.
-@cache.memoize()
-def global_store(value):
-    """
-
-    :param value:
-    :return:
-    """
-    gender = value["gender"]
-    age = value["age"]
-
-    tmp = filter_age_gender(df, age, gender)
-    tmp = (
-        tmp.groupby("dawka_ost")
-        .agg({"liczba_zaraportowanych_zgonow": sum})
-        .reset_index()
-    )
-    # "dlugie obliczenia"
-    time.sleep(3)
-    return tmp
-
-
-@app.callback(
-    Output("signal", "data"),
-    [Input("gender-selection", "value"), Input("age-selection", "value")],
-)
-def compute_value(selected_gender_value, age_selection_value):
-    """
-
-    :param selected_gender_value:
-    :param age_selection_value:
-    :return:
-    """
-    global_store(
-        {"gender": sorted(selected_gender_value), "age": sorted(age_selection_value)}
-    )
-
-    return {"gender": selected_gender_value, "age": age_selection_value}
-
-
-@app.callback(
-    Output("chart", "figure"),
-    Input("signal", "data"),
-)
-def update_graph(value):
-    """
-    Updates the plot according to the selected values
-
-    :param selected_gender_value:
-    :param age_selection_value:
-    :return: updated plotly figure
-    """
-    df_preprocessed = global_store(value)
-
-    fig = px.bar(
-        df_preprocessed,
-        x="dawka_ost",
-        y="liczba_zaraportowanych_zgonow",
-        color="dawka_ost",
-        title="Zgony według zaszczepienia",
-        labels={
-            "dawka_ost": "Zaszczepienie",
-            "liczba_zaraportowanych_zgonow": "Liczba zgonów",
-        },
-    )
-
-    fig.update_layout(barmode="overlay")
-
-    return fig
-
-
-@app.callback(
-    [Output("select_columns", "value"), Output("select_columns", "options")],
-    Input("signal", "data"),
-)
-def update_available_columns(value):
-    """
-
-    :param value:
-    :return:
-    """
-    df_preprocessed = global_store(value)
-
-    return df_preprocessed.columns, df_preprocessed.columns
-
-
-@app.callback(
-    Output("tbl", "data"), [Input("signal", "data"), Input("select_columns", "value")]
-)
-def update_table(value, selected_columns):
-    """
-
-    :param value:
-    :param selected_columns:
-    :return:
-    """
-    df_preprocessed = global_store(value)
-    return df_preprocessed[selected_columns].to_dict("rows")
-
-'''
 
 if __name__ == "__main__":
     app.run_server(debug=True)
