@@ -1,3 +1,7 @@
+"""
+Setting variables
+"""
+
 cities = {
     "Warszawa": (52.2297, 21.0122),
     "Kraków": (50.0647, 19.9450),

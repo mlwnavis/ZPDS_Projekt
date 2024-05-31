@@ -1,3 +1,8 @@
+"""
+Core application
+
+"""
+
 import os
 import time
 import pandas as pd  # type: ignore
@@ -11,21 +16,22 @@ app = Dash(__name__, assets_folder="../assets")
 
 server = app.server
 
+
 CACHE_CONFIG = {
-    # Switching to 'FileSystemCache' to avoid Redis connection issues
-    "CACHE_TYPE": "filesystem",
-    "CACHE_DIR": "cache-directory",
+    # try 'FileSystemCache' if you don't want to setup redis
+    "CACHE_TYPE": "redis",
+    "CACHE_REDIS_URL": os.getenv("REDIS_URL", "redis://localhost:6379"),
 }
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
 
 # Data source
-df = get_data(30)
+df = get_data(date_range)
 
 # App layout
 app.layout = html.Div(
     [
-        html.H1(children="Prognoza pogody"),
+        html.H1(children="Historia pogody"),
         html.Div(
             children="""
             Aplikacja napisana w Dashu
@@ -57,7 +63,7 @@ app.layout = html.Div(
                     max=30,
                     step=1,
                     value=30,
-                    marks={i: str(i) for i in range(1, 31)},
+                    marks={i: str(i) for i in range(1, date_range + 1)},
                 ),
             ]
         ),
@@ -145,7 +151,12 @@ def global_store(city, days):
     if city == "Wszystkie":
         return filter_city_days(df, None, days)
     elif city == "Cała Polska":
-        return filter_city_days(df, None, days).groupby("time").agg({"tavg": "mean", "wspd": "mean", "pres": "mean", "prcp": "sum"}).reset_index()
+        return (
+            filter_city_days(df, None, days)
+            .groupby("time")
+            .agg({"tavg": "mean", "wspd": "mean", "pres": "mean", "prcp": "sum"})
+            .reset_index()
+        )
     else:
         return filter_city_days(df, city, days)
 
@@ -182,30 +193,35 @@ def update_graph(value):
                 city_data,
                 x="time",
                 y="tavg",
-                title=f"Average Temperature in {city} for the last {days} days",
+                title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
                 height=tavg_height,
+                labels={"time": "Dzień", "tavg": "°C"},
             )
             wspd_fig = px.line(
                 city_data,
                 x="time",
                 y="wspd",
-                title=f"Wind Speed in {city} for the last {days} days",
+                title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
                 height=wspd_height,
+                labels={"time": "Dzień", "wspd": "km/h"},
             )
             pres_fig = px.line(
                 city_data,
                 x="time",
                 y="pres",
-                title=f"Pressure in {city} for the last {days} days",
+                title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
                 height=pres_height,
+                labels={"time": "Dzień", "pres": "hPa"},
             )
             prcp_fig = px.bar(
                 city_data,
                 x="time",
                 y="prcp",
-                title=f"Precipitation in {city} for the last {days} days",
+                title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
                 height=prcp_height,
+                labels={"time": "Dzień", "prcp": "mm"},
             )
+
             tavg_graphs.append(
                 html.Div(dcc.Graph(figure=tavg_fig), style={"margin-bottom": "50px"})
             )
@@ -224,29 +240,33 @@ def update_graph(value):
             df_preprocessed,
             x="time",
             y="tavg",
-            title=f"Average Temperature in Cała Polska for the last {days} days",
+            title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
             height=tavg_height,
+            labels={"time": "Dzień", "tavg": "°C"},
         )
         wspd_fig = px.line(
             df_preprocessed,
             x="time",
             y="wspd",
-            title=f"Wind Speed in Cała Polska for the last {days} days",
+            title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
             height=wspd_height,
+            labels={"time": "Dzień", "wspd": "km/h"},
         )
         pres_fig = px.line(
             df_preprocessed,
             x="time",
             y="pres",
-            title=f"Pressure in Cała Polska for the last {days} days",
+            title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
             height=pres_height,
+            labels={"time": "Dzień", "pres": "hPa"},
         )
         prcp_fig = px.bar(
             df_preprocessed,
             x="time",
             y="prcp",
-            title=f"Precipitation in Cała Polska for the last {days} days",
+            title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
             height=prcp_height,
+            labels={"time": "Dzień", "prcp": "mm"},
         )
         return (
             [dcc.Graph(figure=tavg_fig)],
@@ -259,29 +279,33 @@ def update_graph(value):
             df_preprocessed,
             x="time",
             y="tavg",
-            title=f"Average Temperature in {city} for the last {days} days",
+            title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
             height=tavg_height,
+            labels={"time": "Dzień", "tavg": "°C"},
         )
         wspd_fig = px.line(
             df_preprocessed,
             x="time",
             y="wspd",
-            title=f"Wind Speed in {city} for the last {days} days",
+            title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
             height=wspd_height,
+            labels={"time": "Dzień", "wspd": "km/h"},
         )
         pres_fig = px.line(
             df_preprocessed,
             x="time",
             y="pres",
-            title=f"Pressure in {city} for the last {days} days",
+            title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
             height=pres_height,
+            labels={"time": "Dzień", "pres": "hPa"},
         )
         prcp_fig = px.bar(
             df_preprocessed,
             x="time",
             y="prcp",
-            title=f"Precipitation in {city} for the last {days} days",
+            title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
             height=prcp_height,
+            labels={"time": "Dzień", "prcp": "mm"},
         )
         return (
             [dcc.Graph(figure=tavg_fig)],
