@@ -1,0 +1,25 @@
+version: '3'
+networks:
+  myapp-network:
+services:
+  myapp:
+    container_name: dash-redis-app
+    build: .
+    depends_on:
+      - "myapp-redis"
+    networks:
+      - myapp-network
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://myapp-redis:6379
+    command:
+      gunicorn --workers=3 --threads=1 -b 0.0.0.0:8000 index:app_redis
+  # redis cache for storing data
+  myapp-redis:
+    container_name: myapp-redis
+    image: redis
+    networks:
+      - myapp-network
+    expose:
+      - "6379"
