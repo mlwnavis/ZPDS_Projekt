@@ -64,3 +64,4 @@ def get_data(delta: int):
 
 if __name__ == "__main__":
     data = get_data(30)
+    data.to_csv("weatherdata.csv")
