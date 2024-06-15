@@ -156,7 +156,7 @@ def global_store(city, days):
             .agg({"tavg": "mean", "wspd": "mean", "pres": "mean", "prcp": "sum"})
             .reset_index()
         )
-    
+
     return filter_city_days(df, city, days)
 
 
@@ -273,45 +273,45 @@ def update_graph(value):
             [dcc.Graph(figure=pres_fig)],
             [dcc.Graph(figure=prcp_fig)],
         )
-    
+
     tavg_fig = px.line(
-            df_preprocessed,
-            x="time",
-            y="tavg",
-            title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
-            height=hp.TAVG_HEIGHT,
-            labels={"time": "Dzień", "tavg": "°C"},
-        )
+        df_preprocessed,
+        x="time",
+        y="tavg",
+        title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
+        height=hp.TAVG_HEIGHT,
+        labels={"time": "Dzień", "tavg": "°C"},
+    )
     wspd_fig = px.line(
-            df_preprocessed,
-            x="time",
-            y="wspd",
-            title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
-            height=hp.WSPD_HEIGHT,
-            labels={"time": "Dzień", "wspd": "km/h"},
-        )
+        df_preprocessed,
+        x="time",
+        y="wspd",
+        title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
+        height=hp.WSPD_HEIGHT,
+        labels={"time": "Dzień", "wspd": "km/h"},
+    )
     pres_fig = px.line(
-            df_preprocessed,
-            x="time",
-            y="pres",
-            title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
-            height=hp.PRES_HEIGHT,
-            labels={"time": "Dzień", "pres": "hPa"},
-        )
+        df_preprocessed,
+        x="time",
+        y="pres",
+        title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
+        height=hp.PRES_HEIGHT,
+        labels={"time": "Dzień", "pres": "hPa"},
+    )
     prcp_fig = px.bar(
-            df_preprocessed,
-            x="time",
-            y="prcp",
-            title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
-            height=hp.PRCP_HEIGHT,
-            labels={"time": "Dzień", "prcp": "mm"},
-        )
+        df_preprocessed,
+        x="time",
+        y="prcp",
+        title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
+        height=hp.PRCP_HEIGHT,
+        labels={"time": "Dzień", "prcp": "mm"},
+    )
     return (
-            [dcc.Graph(figure=tavg_fig)],
-            [dcc.Graph(figure=wspd_fig)],
-            [dcc.Graph(figure=pres_fig)],
-            [dcc.Graph(figure=prcp_fig)],
-        )
+        [dcc.Graph(figure=tavg_fig)],
+        [dcc.Graph(figure=wspd_fig)],
+        [dcc.Graph(figure=pres_fig)],
+        [dcc.Graph(figure=prcp_fig)],
+    )
 
 
 @app.callback(

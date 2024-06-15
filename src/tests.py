@@ -74,10 +74,10 @@ def test_data_types(data):
 
 def test_dates_within_range(data):
     """
-    Test to ensure that all dates are within the specified date_range days from today.
+    Test to ensure that all dates are within the specified DATE_RANGE days from today.
     """
     max_date = pd.to_datetime("today")
-    min_date = max_date - pd.Timedelta(days=hp.date_range)
+    min_date = max_date - pd.Timedelta(days=hp.DATE_RANGE)
     dates_out_of_range = data[~data["time"].between(min_date, max_date)]
 
     assert (
