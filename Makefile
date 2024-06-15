@@ -1,4 +1,3 @@
-
 DOCKER_IMAGE = "pogodynka"
 
 # build docker image
@@ -19,12 +18,12 @@ make-requirements: requirements.in
 .PHONY:
 requirements.txt: requirements.in
 
-    pip-compile --generate-hashes requirements.in
+	pip-compile --generate-hashes requirements.in
 
 .PHONY:
 install: requirements.txt
 
-    pip install -r requirements.txt
+	pip install -r requirements.txt
 
 venv: requirements.txt
 	python3.11 -m venv .venv
