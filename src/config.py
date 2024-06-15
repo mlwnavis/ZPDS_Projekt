@@ -22,9 +22,9 @@ cities = {
     "Opole": (50.6751, 17.9213),
 }
 
-date_range = 30
+DATE_RANGE = 30
 
-tavg_height = 1000
-wspd_height = 250
-pres_height = 250
-prcp_height = 500
+TAVG_HEIGHT = 1000
+WSPD_HEIGHT = 250
+PRES_HEIGHT = 250
+PRCP_HEIGHT = 500
