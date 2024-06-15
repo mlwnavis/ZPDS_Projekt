@@ -6,7 +6,6 @@ Defining basic data generating function and setting variables
 import datetime
 import pandas as pd
 from meteostat import Point, Daily
-import config as cg
 
 cities = {
     "Warszawa": (52.2297, 21.0122),
