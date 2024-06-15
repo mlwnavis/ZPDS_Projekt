@@ -4,6 +4,7 @@ Core application
 """
 
 import os
+import datetime
 import pandas as pd  # type: ignore
 from dash import Dash, html, dcc  # type: ignore
 from dash.dependencies import Input, Output  # type: ignore
@@ -12,7 +13,6 @@ import plotly.express as px  # type: ignore
 
 # import helpers as hp # type: ignore
 from meteostat import Point, Daily
-import datetime
 
 cities = {
     "Warszawa": (52.2297, 21.0122),
