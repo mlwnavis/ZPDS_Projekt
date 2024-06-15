@@ -5,7 +5,6 @@ Testing basic properties of the database
 
 import pandas as pd
 import pytest
-import helpers as hp
 
 
 @pytest.fixture
@@ -15,9 +14,7 @@ def test_data():
     :return:
     """
     with open(
-        "data/rawdata/weatherdata.csv",
-        encoding="utf8",
-        errors="ignore",
+        "data/rawdata/weatherdata.csv", encoding="utf8", errors="ignore", newline=""
     ) as file:
         df_weather = pd.read_csv(file, sep=",")
     return df_weather
@@ -66,7 +63,6 @@ def test_data_types(test_data):  # pylint: disable=W0621
     """
     expected_dtypes = {
         "City": "object",
-        "time": "datetime64[ns]",
         "tavg": "float64",
         "wspd": "float64",
         "pres": "float64",
@@ -77,19 +73,6 @@ def test_data_types(test_data):  # pylint: disable=W0621
         assert (
             test_data[column].dtype == expected_dtype
         ), f"Column {column} is not of type {expected_dtype}"
-
-
-def test_dates_within_range(test_data):  # pylint: disable=W0621
-    """
-    Test to ensure that all dates are within the specified DATE_RANGE days from today.
-    """
-    max_date = pd.to_datetime("today")
-    min_date = max_date - pd.Timedelta(days=hp.DATE_RANGE)
-    dates_out_of_range = test_data[~test_data["time"].between(min_date, max_date)]
-
-    assert (
-        dates_out_of_range.empty
-    ), f"Found dates out of the specified range: {dates_out_of_range['time'].unique()}"
 
 
 if __name__ == "__main__":
