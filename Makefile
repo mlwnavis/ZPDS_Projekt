@@ -1,5 +1,5 @@
 
-DOCKER_IMAGE = "uam_dash"
+DOCKER_IMAGE = "pogodynka"
 
 # build docker image
 docker-build:
@@ -15,6 +15,16 @@ docker-run-compose: docker-build
 make-requirements: requirements.in
 	pip install pip-tools
 	pip-compile --generate-hashes requirements.in
+
+.PHONY:
+requirements.txt: requirements.in
+
+    pip-compile --generate-hashes requirements.in
+
+.PHONY:
+install: requirements.txt
+
+    pip install -r requirements.txt
 
 venv: requirements.txt
 	python3.11 -m venv .venv
@@ -38,3 +48,6 @@ black:
 .PHONY: venv
 pylint:
 	pylint src/
+
+
+
