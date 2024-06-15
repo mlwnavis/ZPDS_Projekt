@@ -16,7 +16,7 @@ def test_data():
     return hp.get_data(30)
 
 
-def test_unique_records_per_city_per_day(test_data):
+def test_unique_records_per_city_per_day(test_data):  # pylint: disable=W0621
     """
     Test to ensure that for each city, there is only one record per day.
     """
@@ -28,7 +28,7 @@ def test_unique_records_per_city_per_day(test_data):
     assert duplicates.empty, f"Found duplicate records: {duplicates}"
 
 
-def test_tavg_value_constraints(test_data):
+def test_tavg_value_constraints(test_data):  # pylint: disable=W0621
     """
     Test to ensure that the 'tavg' column does not contain values greater
     than 42 or less than -42 (lowest and highest temperatures recorded in Poland).
@@ -42,7 +42,7 @@ def test_tavg_value_constraints(test_data):
     ), f"Found 'tavg' values less than -42: {tavg_below_neg_42}"
 
 
-def test_no_missing_values(test_data):
+def test_no_missing_values(test_data):  # pylint: disable=W0621
     """
     Test to ensure there are no missing values in used columns.
     """
@@ -53,7 +53,7 @@ def test_no_missing_values(test_data):
         assert count == 0, f"Column {col} has {count} missing values"
 
 
-def test_data_types(test_data):
+def test_data_types(test_data):  # pylint: disable=W0621
     """
     Test to ensure that each column has the correct data type.
     """
@@ -72,7 +72,7 @@ def test_data_types(test_data):
         ), f"Column {column} is not of type {expected_dtype}"
 
 
-def test_dates_within_range(test_data):
+def test_dates_within_range(test_data):  # pylint: disable=W0621
     """
     Test to ensure that all dates are within the specified DATE_RANGE days from today.
     """
