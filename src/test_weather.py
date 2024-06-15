@@ -11,11 +11,11 @@ import helpers as hp
 @pytest.fixture
 def test_data():
     """
- 
+
     :return:
     """
     with open(
-        "data/weatherdata.csv",
+        "data/rawdata/weatherdata.csv",
         encoding="utf8",
         errors="ignore",
     ) as file:
