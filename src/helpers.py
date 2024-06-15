@@ -2,6 +2,7 @@
 Defining basic data generating function and setting variables
 
 """
+
 import datetime
 import pandas as pd
 from meteostat import Point, Daily
@@ -33,6 +34,7 @@ TAVG_HEIGHT = 1000
 WSPD_HEIGHT = 250
 PRES_HEIGHT = 250
 PRCP_HEIGHT = 500
+
 
 def get_data(delta: int):
     """
