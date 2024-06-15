@@ -9,7 +9,65 @@ from dash import Dash, html, dcc  # type: ignore
 from dash.dependencies import Input, Output  # type: ignore
 from flask_caching import Cache  # type: ignore
 import plotly.express as px  # type: ignore
-import helpers as hp
+
+# import helpers as hp # type: ignore
+from meteostat import Point, Daily
+import datetime
+
+cities = {
+    "Warszawa": (52.2297, 21.0122),
+    "Kraków": (50.0647, 19.9450),
+    "Łódź": (51.7592, 19.4550),
+    "Wrocław": (51.1079, 17.0385),
+    "Poznań": (52.4064, 16.9252),
+    "Gdańsk": (54.3520, 18.6466),
+    "Szczecin": (53.4285, 14.5528),
+    "Bydgoszcz": (53.1235, 18.0084),
+    "Lublin": (51.2465, 22.5684),
+    "Białystok": (53.1325, 23.1688),
+    "Katowice": (50.2649, 19.0238),
+    "Gorzów Wielkopolski": (52.7368, 15.2288),
+    "Zielona Góra": (51.9355, 15.5062),
+    "Rzeszów": (50.0412, 21.9991),
+    "Kielce": (50.8661, 20.6286),
+    "Olsztyn": (53.7767, 20.4752),
+    "Opole": (50.6751, 17.9213),
+}
+
+DATE_RANGE = 30
+
+TAVG_HEIGHT = 1000
+WSPD_HEIGHT = 250
+PRES_HEIGHT = 250
+PRCP_HEIGHT = 500
+
+
+def get_data(delta: int):
+    """
+    Fetches data for cities in config, looking secified amount days back.
+
+    :param delta: Number of days to look back
+    :return: DataFrame with basic weather statistics for all the cities and dates
+    """
+    start = datetime.datetime.today() - datetime.timedelta(days=delta)
+    end = datetime.datetime.today()
+
+    all_data = []
+
+    for city, (lat, lon) in cities.items():
+        location = Point(lat, lon)
+
+        data_tmp = Daily(location, start, end)
+        data_tmp = data_tmp.fetch()
+
+        data_tmp["City"] = city
+
+        data_tmp.reset_index(inplace=True)
+        all_data.append(data_tmp)
+    data_complete = pd.concat(all_data, ignore_index=True)
+
+    return data_complete
+
 
 app = Dash(__name__, assets_folder="../assets")
 
@@ -25,7 +83,7 @@ cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
 
 # Data source
-df = hp.get_data(hp.DATE_RANGE)
+df = get_data(DATE_RANGE)
 
 # App layout
 app.layout = html.Div(
@@ -62,7 +120,7 @@ app.layout = html.Div(
                     max=30,
                     step=1,
                     value=30,
-                    marks={i: str(i) for i in range(1, hp.DATE_RANGE + 1)},
+                    marks={i: str(i) for i in range(1, DATE_RANGE + 1)},
                 ),
             ]
         ),
@@ -76,7 +134,7 @@ app.layout = html.Div(
                             children=html.Div(
                                 id="pres-charts-container",
                                 style={
-                                    "height": f"{hp.PRES_HEIGHT}px",
+                                    "height": f"{PRES_HEIGHT}px",
                                     "overflowY": "scroll",
                                 },
                             ),
@@ -87,7 +145,7 @@ app.layout = html.Div(
                             children=html.Div(
                                 id="wspd-charts-container",
                                 style={
-                                    "height": f"{hp.WSPD_HEIGHT}px",
+                                    "height": f"{WSPD_HEIGHT}px",
                                     "overflowY": "scroll",
                                 },
                             ),
@@ -98,7 +156,7 @@ app.layout = html.Div(
                             children=html.Div(
                                 id="prcp-charts-container",
                                 style={
-                                    "height": f"{hp.PRCP_HEIGHT}px",
+                                    "height": f"{PRCP_HEIGHT}px",
                                     "overflowY": "scroll",
                                 },
                             ),
@@ -118,7 +176,7 @@ app.layout = html.Div(
                             children=html.Div(
                                 id="tavg-charts-container",
                                 style={
-                                    "height": f"{hp.TAVG_HEIGHT}px",
+                                    "height": f"{TAVG_HEIGHT}px",
                                     "overflowY": "scroll",
                                 },
                             ),
@@ -193,7 +251,7 @@ def update_graph(value):
                 x="time",
                 y="tavg",
                 title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
-                height=hp.TAVG_HEIGHT,
+                height=TAVG_HEIGHT,
                 labels={"time": "Dzień", "tavg": "°C"},
             )
             wspd_fig = px.line(
@@ -201,7 +259,7 @@ def update_graph(value):
                 x="time",
                 y="wspd",
                 title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
-                height=hp.WSPD_HEIGHT,
+                height=WSPD_HEIGHT,
                 labels={"time": "Dzień", "wspd": "km/h"},
             )
             pres_fig = px.line(
@@ -209,7 +267,7 @@ def update_graph(value):
                 x="time",
                 y="pres",
                 title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
-                height=hp.PRES_HEIGHT,
+                height=PRES_HEIGHT,
                 labels={"time": "Dzień", "pres": "hPa"},
             )
             prcp_fig = px.bar(
@@ -217,7 +275,7 @@ def update_graph(value):
                 x="time",
                 y="prcp",
                 title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
-                height=hp.PRCP_HEIGHT,
+                height=PRCP_HEIGHT,
                 labels={"time": "Dzień", "prcp": "mm"},
             )
 
@@ -240,7 +298,7 @@ def update_graph(value):
             x="time",
             y="tavg",
             title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
-            height=hp.TAVG_HEIGHT,
+            height=TAVG_HEIGHT,
             labels={"time": "Dzień", "tavg": "°C"},
         )
         wspd_fig = px.line(
@@ -248,7 +306,7 @@ def update_graph(value):
             x="time",
             y="wspd",
             title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
-            height=hp.WSPD_HEIGHT,
+            height=WSPD_HEIGHT,
             labels={"time": "Dzień", "wspd": "km/h"},
         )
         pres_fig = px.line(
@@ -256,7 +314,7 @@ def update_graph(value):
             x="time",
             y="pres",
             title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
-            height=hp.PRES_HEIGHT,
+            height=PRES_HEIGHT,
             labels={"time": "Dzień", "pres": "hPa"},
         )
         prcp_fig = px.bar(
@@ -264,7 +322,7 @@ def update_graph(value):
             x="time",
             y="prcp",
             title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
-            height=hp.PRCP_HEIGHT,
+            height=PRCP_HEIGHT,
             labels={"time": "Dzień", "prcp": "mm"},
         )
         return (
@@ -279,7 +337,7 @@ def update_graph(value):
         x="time",
         y="tavg",
         title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
-        height=hp.TAVG_HEIGHT,
+        height=TAVG_HEIGHT,
         labels={"time": "Dzień", "tavg": "°C"},
     )
     wspd_fig = px.line(
@@ -287,7 +345,7 @@ def update_graph(value):
         x="time",
         y="wspd",
         title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
-        height=hp.WSPD_HEIGHT,
+        height=WSPD_HEIGHT,
         labels={"time": "Dzień", "wspd": "km/h"},
     )
     pres_fig = px.line(
@@ -295,7 +353,7 @@ def update_graph(value):
         x="time",
         y="pres",
         title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
-        height=hp.PRES_HEIGHT,
+        height=PRES_HEIGHT,
         labels={"time": "Dzień", "pres": "hPa"},
     )
     prcp_fig = px.bar(
@@ -303,7 +361,7 @@ def update_graph(value):
         x="time",
         y="prcp",
         title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
-        height=hp.PRCP_HEIGHT,
+        height=PRCP_HEIGHT,
         labels={"time": "Dzień", "prcp": "mm"},
     )
     return (
