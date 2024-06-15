@@ -64,4 +64,3 @@ def get_data(delta: int):
 
 if __name__ == "__main__":
     data = get_data(30)
-    print(data)
