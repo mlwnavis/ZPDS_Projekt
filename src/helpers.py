@@ -3,10 +3,10 @@ Defining basic data generating function
 
 """
 
+import pandas as pd
 import datetime
 from meteostat import Point, Daily
-from config import *
-import pandas as pd
+import config as cg
 
 
 def get_data(delta: int):
@@ -21,16 +21,16 @@ def get_data(delta: int):
 
     all_data = []
 
-    for city, (lat, lon) in cities.items():
+    for city, (lat, lon) in cg.cities.items():
         location = Point(lat, lon)
 
-        data = Daily(location, start, end)
-        data = data.fetch()
+        data_tmp = Daily(location, start, end)
+        data_tmp = data_tmp.fetch()
 
-        data["City"] = city
+        data_tmp["City"] = city
 
-        data.reset_index(inplace=True)
-        all_data.append(data)
+        data_tmp.reset_index(inplace=True)
+        all_data.append(data_tmp)
     data_complete = pd.concat(all_data, ignore_index=True)
 
     return data_complete

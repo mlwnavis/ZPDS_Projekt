@@ -3,13 +3,14 @@ Testing basic properties of the database
 
 """
 
+import pandas as pd
 import pytest
-from helpers import *
+import helpers as hp
 
 
 @pytest.fixture
-def data():
-    return get_data(30)
+def test_data():
+    return hp.get_data(30)
 
 
 def test_unique_records_per_city_per_day(data):
@@ -26,7 +27,8 @@ def test_unique_records_per_city_per_day(data):
 
 def test_tavg_value_constraints(data):
     """
-    Test to ensure that the 'tavg' column does not contain values greater than 42 or less than -42 (lowest and highest temperatures recorded in Poland).
+    Test to ensure that the 'tavg' column does not contain values greater
+    than 42 or less than -42 (lowest and highest temperatures recorded in Poland).
     """
     tavg_above_42 = data[data["tavg"] > 42]
     assert tavg_above_42.empty, f"Found 'tavg' values greater than 42: {tavg_above_42}"
@@ -72,7 +74,7 @@ def test_dates_within_range(data):
     Test to ensure that all dates are within the specified date_range days from today.
     """
     max_date = pd.to_datetime("today")
-    min_date = max_date - pd.Timedelta(days=date_range)
+    min_date = max_date - pd.Timedelta(days=hp.date_range)
     dates_out_of_range = data[~data["time"].between(min_date, max_date)]
 
     assert (

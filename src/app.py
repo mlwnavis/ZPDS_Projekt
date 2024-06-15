@@ -4,13 +4,12 @@ Core application
 """
 
 import os
-import time
 import pandas as pd  # type: ignore
-from dash import Dash, html, dcc, dash_table  # type: ignore
+from dash import Dash, html, dcc  # type: ignore
 from dash.dependencies import Input, Output  # type: ignore
 from flask_caching import Cache  # type: ignore
 import plotly.express as px  # type: ignore
-from helpers import *
+import helpers as hp
 
 app = Dash(__name__, assets_folder="../assets")
 
@@ -26,7 +25,7 @@ cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
 
 # Data source
-df = get_data(date_range)
+df = hp.get_data(hp.DATE_RANGE)
 
 # App layout
 app.layout = html.Div(
@@ -63,7 +62,7 @@ app.layout = html.Div(
                     max=30,
                     step=1,
                     value=30,
-                    marks={i: str(i) for i in range(1, date_range + 1)},
+                    marks={i: str(i) for i in range(1, hp.DATE_RANGE + 1)},
                 ),
             ]
         ),
@@ -77,7 +76,7 @@ app.layout = html.Div(
                             children=html.Div(
                                 id="pres-charts-container",
                                 style={
-                                    "height": f"{pres_height}px",
+                                    "height": f"{hp.PRES_HEIGHT}px",
                                     "overflowY": "scroll",
                                 },
                             ),
@@ -88,7 +87,7 @@ app.layout = html.Div(
                             children=html.Div(
                                 id="wspd-charts-container",
                                 style={
-                                    "height": f"{wspd_height}px",
+                                    "height": f"{hp.WSPD_HEIGHT}px",
                                     "overflowY": "scroll",
                                 },
                             ),
@@ -99,7 +98,7 @@ app.layout = html.Div(
                             children=html.Div(
                                 id="prcp-charts-container",
                                 style={
-                                    "height": f"{prcp_height}px",
+                                    "height": f"{hp.PRCP_HEIGHT}px",
                                     "overflowY": "scroll",
                                 },
                             ),
@@ -119,7 +118,7 @@ app.layout = html.Div(
                             children=html.Div(
                                 id="tavg-charts-container",
                                 style={
-                                    "height": f"{tavg_height}px",
+                                    "height": f"{hp.TAVG_HEIGHT}px",
                                     "overflowY": "scroll",
                                 },
                             ),
@@ -150,7 +149,7 @@ def global_store(city, days):
     """
     if city == "Wszystkie":
         return filter_city_days(df, None, days)
-    elif city == "Cała Polska":
+    if city == "Cała Polska":
         return (
             filter_city_days(df, None, days)
             .groupby("time")
@@ -182,19 +181,19 @@ def update_graph(value):
     days = value["Days"]
 
     if city == "Wszystkie":
-        cities = df_preprocessed["City"].unique()
+        cities_processed = df_preprocessed["City"].unique()
         tavg_graphs = []
         wspd_graphs = []
         pres_graphs = []
         prcp_graphs = []
-        for city in cities:
+        for city in cities_processed:
             city_data = df_preprocessed[df_preprocessed["City"] == city]
             tavg_fig = px.line(
                 city_data,
                 x="time",
                 y="tavg",
                 title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
-                height=tavg_height,
+                height=hp.TAVG_HEIGHT,
                 labels={"time": "Dzień", "tavg": "°C"},
             )
             wspd_fig = px.line(
@@ -202,7 +201,7 @@ def update_graph(value):
                 x="time",
                 y="wspd",
                 title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
-                height=wspd_height,
+                height=hp.WSPD_HEIGHT,
                 labels={"time": "Dzień", "wspd": "km/h"},
             )
             pres_fig = px.line(
@@ -210,7 +209,7 @@ def update_graph(value):
                 x="time",
                 y="pres",
                 title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
-                height=pres_height,
+                height=hp.PRES_HEIGHT,
                 labels={"time": "Dzień", "pres": "hPa"},
             )
             prcp_fig = px.bar(
@@ -218,7 +217,7 @@ def update_graph(value):
                 x="time",
                 y="prcp",
                 title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
-                height=prcp_height,
+                height=hp.PRCP_HEIGHT,
                 labels={"time": "Dzień", "prcp": "mm"},
             )
 
@@ -235,13 +234,13 @@ def update_graph(value):
                 html.Div(dcc.Graph(figure=prcp_fig), style={"margin-bottom": "50px"})
             )
         return tavg_graphs, wspd_graphs, pres_graphs, prcp_graphs
-    elif city == "Cała Polska":
+    if city == "Cała Polska":
         tavg_fig = px.line(
             df_preprocessed,
             x="time",
             y="tavg",
             title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
-            height=tavg_height,
+            height=hp.TAVG_HEIGHT,
             labels={"time": "Dzień", "tavg": "°C"},
         )
         wspd_fig = px.line(
@@ -249,7 +248,7 @@ def update_graph(value):
             x="time",
             y="wspd",
             title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
-            height=wspd_height,
+            height=hp.WSPD_HEIGHT,
             labels={"time": "Dzień", "wspd": "km/h"},
         )
         pres_fig = px.line(
@@ -257,7 +256,7 @@ def update_graph(value):
             x="time",
             y="pres",
             title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
-            height=pres_height,
+            height=hp.PRES_HEIGHT,
             labels={"time": "Dzień", "pres": "hPa"},
         )
         prcp_fig = px.bar(
@@ -265,7 +264,7 @@ def update_graph(value):
             x="time",
             y="prcp",
             title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
-            height=prcp_height,
+            height=hp.PRCP_HEIGHT,
             labels={"time": "Dzień", "prcp": "mm"},
         )
         return (
@@ -280,7 +279,7 @@ def update_graph(value):
             x="time",
             y="tavg",
             title=f"Średnia temperatura dla {city} w ostatnich {days} dniach",
-            height=tavg_height,
+            height=hp.TAVG_HEIGHT,
             labels={"time": "Dzień", "tavg": "°C"},
         )
         wspd_fig = px.line(
@@ -288,7 +287,7 @@ def update_graph(value):
             x="time",
             y="wspd",
             title=f"Średnia prędkość wiatru w {city} w ostatnich {days} dniach",
-            height=wspd_height,
+            height=hp.WSPD_HEIGHT,
             labels={"time": "Dzień", "wspd": "km/h"},
         )
         pres_fig = px.line(
@@ -296,7 +295,7 @@ def update_graph(value):
             x="time",
             y="pres",
             title=f"Średnie ciśnienie atmosferyczne w {city} w ostatnich {days} dniach",
-            height=pres_height,
+            height=hp.PRES_HEIGHT,
             labels={"time": "Dzień", "pres": "hPa"},
         )
         prcp_fig = px.bar(
@@ -304,7 +303,7 @@ def update_graph(value):
             x="time",
             y="prcp",
             title=f"Opady atmosferyczne w {city} w ostatnich {days} dniach",
-            height=prcp_height,
+            height=hp.PRCP_HEIGHT,
             labels={"time": "Dzień", "prcp": "mm"},
         )
         return (
