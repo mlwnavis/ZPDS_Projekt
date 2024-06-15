@@ -47,7 +47,7 @@ def get_data(delta: int):
 
     all_data = []
 
-    for city, (lat, lon) in cg.cities.items():
+    for city, (lat, lon) in cities.items():
         location = Point(lat, lon)
 
         data_tmp = Daily(location, start, end)

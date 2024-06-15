@@ -1,4 +1,4 @@
-name: Pylint
+name: Pytest
  
 on: [push, pull_request]
  
@@ -13,5 +13,4 @@ jobs:
         python-version: 3.11
     - run: pip install --upgrade pip
     - run: pip install -r requirements.txt
-    - run: pip install pylint==3.2.2
-    - run: pylint $(git ls-files '*.py')
+    - run: pytest
