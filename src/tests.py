@@ -10,6 +10,9 @@ import helpers as hp
 
 @pytest.fixture
 def test_data():
+    """
+    Getting data for test.
+    """
     return hp.get_data(30)
 
 

@@ -156,8 +156,8 @@ def global_store(city, days):
             .agg({"tavg": "mean", "wspd": "mean", "pres": "mean", "prcp": "sum"})
             .reset_index()
         )
-    else:
-        return filter_city_days(df, city, days)
+    
+    return filter_city_days(df, city, days)
 
 
 @app.callback(
@@ -273,8 +273,8 @@ def update_graph(value):
             [dcc.Graph(figure=pres_fig)],
             [dcc.Graph(figure=prcp_fig)],
         )
-    else:
-        tavg_fig = px.line(
+    
+    tavg_fig = px.line(
             df_preprocessed,
             x="time",
             y="tavg",
@@ -282,7 +282,7 @@ def update_graph(value):
             height=hp.TAVG_HEIGHT,
             labels={"time": "Dzień", "tavg": "°C"},
         )
-        wspd_fig = px.line(
+    wspd_fig = px.line(
             df_preprocessed,
             x="time",
             y="wspd",
@@ -290,7 +290,7 @@ def update_graph(value):
             height=hp.WSPD_HEIGHT,
             labels={"time": "Dzień", "wspd": "km/h"},
         )
-        pres_fig = px.line(
+    pres_fig = px.line(
             df_preprocessed,
             x="time",
             y="pres",
@@ -298,7 +298,7 @@ def update_graph(value):
             height=hp.PRES_HEIGHT,
             labels={"time": "Dzień", "pres": "hPa"},
         )
-        prcp_fig = px.bar(
+    prcp_fig = px.bar(
             df_preprocessed,
             x="time",
             y="prcp",
@@ -306,7 +306,7 @@ def update_graph(value):
             height=hp.PRCP_HEIGHT,
             labels={"time": "Dzień", "prcp": "mm"},
         )
-        return (
+    return (
             [dcc.Graph(figure=tavg_fig)],
             [dcc.Graph(figure=wspd_fig)],
             [dcc.Graph(figure=pres_fig)],
