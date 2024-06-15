@@ -11,9 +11,16 @@ import helpers as hp
 @pytest.fixture
 def test_data():
     """
-    Getting data for test.
+ 
+    :return:
     """
-    return hp.get_data(30)
+    with open(
+        "data/weatherdata.csv",
+        encoding="utf8",
+        errors="ignore",
+    ) as file:
+        df_weather = pd.read_csv(file, sep=",")
+    return df_weather
 
 
 def test_unique_records_per_city_per_day(test_data):  # pylint: disable=W0621
