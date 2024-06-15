@@ -5,7 +5,6 @@ Testing basic properties of the database
 
 import pandas as pd
 import pytest
-import helpers as hp
 
 
 @pytest.fixture
