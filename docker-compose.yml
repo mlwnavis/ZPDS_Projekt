@@ -14,7 +14,7 @@ services:
     environment:
       REDIS_URL: redis://myapp-redis:6379
     command:
-      gunicorn --workers=2 --threads=1 -b 0.0.0.0:8000 index:app
+      gunicorn --workers=2 --threads=1 -b 0.0.0.0:8000 "index:app"  --pythonpath "/wd"
   # redis cache for storing data
   myapp-redis:
     container_name: myapp-redis
