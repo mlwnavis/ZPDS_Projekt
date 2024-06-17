@@ -10,7 +10,7 @@ Ta aplikacja pozwala na śledzenie przebiegu pogody z ostatnich dni we wszystkic
 python3 src/app.py
 ```
 
-odwiedź http://127.0.0.1:8050/ w swojej przeglądarce internetowej.
+odwiedź http://127.0.0.1:8000/ w swojej przeglądarce internetowej.
 
 ### Budowanie i uruchamianie dockera
 
